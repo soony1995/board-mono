@@ -1,0 +1,16 @@
+/* src/PostDetail.css */
+
+.PostDetail {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+  }
+  
+  .PostDetail h2 {
+    margin-top: 0;
+  }
+  
+  .PostDetail p {
+    line-height: 1.6;
+  }
+  

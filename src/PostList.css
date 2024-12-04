@@ -1,0 +1,18 @@
+/* src/PostList.css */
+
+.PostList ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .PostList li {
+    background-color: #f8f9fa;
+    margin-bottom: 10px;
+    padding: 15px;
+    border-radius: 5px;
+  }
+  
+  .PostList li:hover {
+    background-color: #e9ecef;
+  }
+  
