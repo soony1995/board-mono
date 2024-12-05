@@ -1,6 +1,7 @@
 package main
 
 import (
+	"board/database"
 	"board/handlers"
 
 	"github.com/labstack/echo/v4"
@@ -8,6 +9,9 @@ import (
 )
 
 func main() {
+	// 데이터베이스 초기화
+	database.InitDB()
+
 	// Echo 인스턴스 생성
 	e := echo.New()
 

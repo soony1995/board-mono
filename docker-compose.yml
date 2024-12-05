@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15  # 원하는 PostgreSQL 버전을 지정 (예: 15)
+    container_name: postgres_container
+    environment:
+      POSTGRES_USER: soony         # 데이터베이스 사용자 이름
+      POSTGRES_PASSWORD: 123123a    # 사용자 비밀번호
+      POSTGRES_DB: post       # 초기 생성할 데이터베이스 이름
+    ports:
+      - "5432:5432" # 로컬 머신의 5432 포트를 컨테이너의 5432 포트에 매핑
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # 데이터가 유지되도록 볼륨 매핑
+
+volumes:
+  postgres_data:
+

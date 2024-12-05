@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"board/database"
 	"board/models"
 	"net/http"
 	"strconv"
@@ -8,36 +9,56 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-var posts = []models.Post{}
-
-// GetPosts returns all posts
 func GetPosts(c echo.Context) error {
+	rows, err := database.DB.Query("SELECT id, title, content FROM posts ORDER BY id DESC")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	var posts []models.Post
+	for rows.Next() {
+		var post models.Post
+		if err := rows.Scan(&post.ID, &post.Title, &post.Content); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		posts = append(posts, post)
+	}
 	return c.JSON(http.StatusOK, posts)
 }
 
-// GetPost returns a specific post
 func GetPost(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
-	for _, post := range posts {
-		if post.ID == id {
-			return c.JSON(http.StatusOK, post)
-		}
+	
+	var post models.Post
+	err := database.DB.QueryRow("SELECT id, title, content FROM posts WHERE id = $1", id).
+		Scan(&post.ID, &post.Title, &post.Content)
+	
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"message": "Post not found"})
 	}
-	return c.JSON(http.StatusNotFound, map[string]string{"message": "Post not found"})
+	
+	return c.JSON(http.StatusOK, post)
 }
 
-// CreatePost creates a new post
 func CreatePost(c echo.Context) error {
 	post := new(models.Post)
 	if err := c.Bind(post); err != nil {
 		return err
 	}
-	post.ID = len(posts) + 1
-	posts = append(posts, *post)
+
+	err := database.DB.QueryRow(
+		"INSERT INTO posts (title, content) VALUES ($1, $2) RETURNING id",
+		post.Title, post.Content,
+	).Scan(&post.ID)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
 	return c.JSON(http.StatusCreated, post)
 }
 
-// UpdatePost updates an existing post
 func UpdatePost(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
 	post := new(models.Post)
@@ -45,24 +66,35 @@ func UpdatePost(c echo.Context) error {
 		return err
 	}
 
-	for i, p := range posts {
-		if p.ID == id {
-			post.ID = id
-			posts[i] = *post
-			return c.JSON(http.StatusOK, post)
-		}
+	result, err := database.DB.Exec(
+		"UPDATE posts SET title = $1, content = $2 WHERE id = $3",
+		post.Title, post.Content, id,
+	)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	return c.JSON(http.StatusNotFound, map[string]string{"message": "Post not found"})
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return c.JSON(http.StatusNotFound, map[string]string{"message": "Post not found"})
+	}
+
+	post.ID = id
+	return c.JSON(http.StatusOK, post)
 }
 
-// DeletePost deletes a post
 func DeletePost(c echo.Context) error {
 	id, _ := strconv.Atoi(c.Param("id"))
-	for i, post := range posts {
-		if post.ID == id {
-			posts = append(posts[:i], posts[i+1:]...)
-			return c.NoContent(http.StatusNoContent)
-		}
+	
+	result, err := database.DB.Exec("DELETE FROM posts WHERE id = $1", id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	return c.JSON(http.StatusNotFound, map[string]string{"message": "Post not found"})
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return c.JSON(http.StatusNotFound, map[string]string{"message": "Post not found"})
+	}
+
+	return c.NoContent(http.StatusNoContent)
 }
